@@ -1,2 +1,66 @@
+# ===================
+# Global
+# ===================
+
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env*.local
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Debug logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Task file (private)
 task.txt
 
+# ===================
+# Expo / React Native (app/)
+# ===================
+
+# Expo
+.expo/
+.expo
+api-docs/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native builds
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Metro
+.metro-health-check*
+
+# TypeScript
+*.tsbuildinfo
+
+# Generated native folders
+app/ios/
+app/android/
+
+# ===================
+# Backend (if needed)
+# ===================
+
+# Node
+backend/node_modules/
