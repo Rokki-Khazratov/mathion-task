@@ -32,6 +32,8 @@ task.txt
 
 # Expo
 .expo/
+.expo
+api-docs/
 dist/
 web-build/
 expo-env.d.ts
