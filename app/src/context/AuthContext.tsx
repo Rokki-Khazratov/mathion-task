@@ -30,9 +30,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Initialize auth state on mount
   useEffect(() => {
-    // TODO: Get initial session from Supabase
-    // TODO: Subscribe to auth state changes
-    setLoading(false);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSession(session as any);
+        setUser(session.user as User);
+      }
+      setLoading(false);
+    });
+
+    // Subscribe to auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setSession(session as any);
+        setUser(session.user as User);
+      } else {
+        setSession(null);
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // Login with email and password
@@ -40,10 +61,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setLoading(true);
     setError(null);
     try {
-      // TODO: Implement login with Supabase
-      console.log('Login:', credentials.email);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.session) {
+        setSession(data.session as any);
+        setUser(data.user as User);
+      }
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Anmeldung fehlgeschlagen';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -55,10 +88,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setLoading(true);
     setError(null);
     try {
-      // TODO: Implement registration with Supabase
-      console.log('Register:', credentials.email);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      const { data, error } = await supabase.auth.signUp({
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.session) {
+        setSession(data.session as any);
+        setUser(data.user as User);
+      } else if (data.user) {
+        // User created but email confirmation required
+        setUser(data.user as User);
+        setError('Bitte bestätige deine E-Mail-Adresse');
+      }
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Registrierung fehlgeschlagen';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -69,11 +118,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = async (): Promise<void> => {
     setLoading(true);
     try {
-      // TODO: Implement logout with Supabase
+      await supabase.auth.signOut();
       setUser(null);
       setSession(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Logout failed');
+    } catch (err: any) {
+      setError(err?.message || 'Abmeldung fehlgeschlagen');
     } finally {
       setLoading(false);
     }
