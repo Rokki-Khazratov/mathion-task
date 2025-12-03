@@ -1,8 +1,3 @@
-/**
- * AuthScreen
- * Handles both login and registration
- */
-
 import React, { useState } from 'react';
 import { View, Text, SafeAreaView, KeyboardAvoidingView, Platform, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
