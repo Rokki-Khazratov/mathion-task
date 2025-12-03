@@ -73,7 +73,7 @@ export type TaskFilter = 'all' | TaskStatus;
 // Navigation param types
 export type RootStackParamList = {
   Auth: undefined;
-  TaskList: undefined;
+  TaskList: { filter?: TaskFilter }; // Optional filter to set
   TaskDetail: { taskId?: string }; // undefined = create mode
 };
 

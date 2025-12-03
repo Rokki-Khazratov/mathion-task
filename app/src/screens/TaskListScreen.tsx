@@ -15,9 +15,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { RootStackParamList, Task, TaskStatus, TaskFilter } from '../lib/types';
 import { useTasks } from '../hooks';
+import { useThemeContext } from '../context/ThemeContext';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -25,6 +26,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 type TaskListNavigationProp = NativeStackNavigationProp<RootStackParamList, 'TaskList'>;
+type TaskListRouteProp = RouteProp<RootStackParamList, 'TaskList'>;
 
 // Filter options in German
 const filters: { key: TaskFilter; label: string }[] = [
@@ -46,13 +48,23 @@ const statusConfig: Record<TaskStatus, { color: string; bg: string; label: strin
  */
 export function TaskListScreen() {
   const navigation = useNavigation<TaskListNavigationProp>();
+  const route = useRoute<TaskListRouteProp>();
   const { tasks, loading, error, filter, setFilter, fetchTasks, updateTask } = useTasks();
+  const { colors, isDark } = useThemeContext();
   const [refreshing, setRefreshing] = useState(false);
   const [tabContainerWidth, setTabContainerWidth] = useState(0);
   
   // Animation for filter indicator
   const slideAnim = useRef(new Animated.Value(0)).current;
   const filterIndex = filters.findIndex(f => f.key === filter);
+  
+  // Set filter from route params if provided
+  useEffect(() => {
+    const params = route.params as { filter?: TaskFilter } | undefined;
+    if (params?.filter) {
+      setFilter(params.filter);
+    }
+  }, [route.params, setFilter]);
 
   // Animate filter indicator when filter changes
   useEffect(() => {
@@ -70,11 +82,19 @@ export function TaskListScreen() {
     setFilter(newFilter);
   };
 
-  // Pull to refresh
+  // Pull to refresh with loading animation
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchTasks();
-    setRefreshing(false);
+    try {
+      await fetchTasks();
+    } catch (err) {
+      console.error('Refresh error:', err);
+    } finally {
+      // Add small delay for better UX
+      setTimeout(() => {
+        setRefreshing(false);
+      }, 300);
+    }
   };
 
   // Navigate to task detail
@@ -104,13 +124,13 @@ export function TaskListScreen() {
           onPress={() => handleTaskPress(item)}
           activeOpacity={0.7}
           style={{
-            backgroundColor: '#FFFFFF',
+            backgroundColor: colors.surface,
             borderRadius: 12,
             padding: 16,
             marginBottom: 10,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.04,
+            shadowOpacity: isDark ? 0.2 : 0.04,
             shadowRadius: 4,
           }}
         >
@@ -153,7 +173,7 @@ export function TaskListScreen() {
               flex: 1, 
               fontSize: 16, 
               fontWeight: '500', 
-              color: item.status === 'done' ? '#86868B' : '#1D1D1F',
+              color: item.status === 'done' ? colors.textSecondary : colors.text,
               textDecorationLine: item.status === 'done' ? 'line-through' : 'none',
               marginTop: 4,
             }}>
@@ -165,13 +185,13 @@ export function TaskListScreen() {
         {item.description && (
           <Text 
             numberOfLines={2} 
-            style={{ 
-              fontSize: 14, 
-              color: '#86868B', 
-              marginLeft: 32,
-              marginBottom: 8,
-              lineHeight: 20,
-            }}
+              style={{ 
+                fontSize: 14, 
+                color: colors.textSecondary, 
+                marginLeft: 32,
+                marginBottom: 8,
+                lineHeight: 20,
+              }}
           >
             {item.description.length > 28 
               ? `${item.description.substring(0, 28)}...` 
@@ -196,8 +216,8 @@ export function TaskListScreen() {
             {/* Deadline */}
             {item.deadline && (
               <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 12 }}>
-                <Ionicons name="calendar-outline" size={14} color="#86868B" />
-                <Text style={{ fontSize: 12, color: '#86868B', marginLeft: 4 }}>
+              <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+              <Text style={{ fontSize: 12, color: colors.textSecondary, marginLeft: 4 }}>
                   {formatDeadline(item.deadline)}
                 </Text>
               </View>
@@ -217,32 +237,32 @@ export function TaskListScreen() {
       paddingVertical: 60,
       paddingHorizontal: 40,
     }}>
-      <View style={{
-        width: 64,
-        height: 64,
-        borderRadius: 16,
-        backgroundColor: '#F2F2F7',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
-      }}>
-        <Ionicons name="checkbox-outline" size={32} color="#86868B" />
-      </View>
-      <Text style={{ 
-        fontSize: 18, 
-        fontWeight: '600', 
-        color: '#1D1D1F', 
-        marginBottom: 8,
-        textAlign: 'center',
-      }}>
-        Keine Aufgaben
-      </Text>
-      <Text style={{ 
-        fontSize: 14, 
-        color: '#86868B', 
-        textAlign: 'center',
-        lineHeight: 20,
-      }}>
+        <View style={{
+          width: 64,
+          height: 64,
+          borderRadius: 16,
+          backgroundColor: colors.border,
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: 16,
+        }}>
+          <Ionicons name="checkbox-outline" size={32} color={colors.textSecondary} />
+        </View>
+        <Text style={{ 
+          fontSize: 18, 
+          fontWeight: '600', 
+          color: colors.text, 
+          marginBottom: 8,
+          textAlign: 'center',
+        }}>
+          Keine Aufgaben
+        </Text>
+        <Text style={{ 
+          fontSize: 14, 
+          color: colors.textSecondary, 
+          textAlign: 'center',
+          lineHeight: 20,
+        }}>
         Erstelle deine erste Aufgabe, um loszulegen
       </Text>
     </View>
@@ -251,9 +271,9 @@ export function TaskListScreen() {
   // Render loading state
   if (loading && tasks.length === 0) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F7', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={{ marginTop: 16, color: '#86868B', fontSize: 14 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={colors.accent} />
+        <Text style={{ marginTop: 16, color: colors.textSecondary, fontSize: 14 }}>
           Aufgaben werden geladen...
         </Text>
       </SafeAreaView>
@@ -263,28 +283,28 @@ export function TaskListScreen() {
   // Render error state
   if (error && tasks.length === 0) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F7', justifyContent: 'center', alignItems: 'center', padding: 40 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
         <View style={{
           width: 64,
           height: 64,
           borderRadius: 16,
-          backgroundColor: '#FFEBEA',
+          backgroundColor: isDark ? '#2C1C1C' : '#FFEBEA',
           justifyContent: 'center',
           alignItems: 'center',
           marginBottom: 16,
         }}>
-          <Ionicons name="alert-circle-outline" size={32} color="#FF3B30" />
+          <Ionicons name="alert-circle-outline" size={32} color={colors.error} />
         </View>
-        <Text style={{ fontSize: 18, fontWeight: '600', color: '#1D1D1F', marginBottom: 8, textAlign: 'center' }}>
+        <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text, marginBottom: 8, textAlign: 'center' }}>
           Fehler beim Laden
         </Text>
-        <Text style={{ fontSize: 14, color: '#86868B', textAlign: 'center', marginBottom: 24 }}>
+        <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginBottom: 24 }}>
           {error}
         </Text>
         <TouchableOpacity
           onPress={fetchTasks}
           style={{
-            backgroundColor: '#007AFF',
+            backgroundColor: colors.accent,
             paddingHorizontal: 24,
             paddingVertical: 12,
             borderRadius: 10,
@@ -300,7 +320,7 @@ export function TaskListScreen() {
   const tabWidth = 80; // Approximate width
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F7' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Header */}
       <View style={{ 
         paddingHorizontal: 20, 
@@ -310,7 +330,7 @@ export function TaskListScreen() {
         <Text style={{ 
           fontSize: 28, 
           fontWeight: '700', 
-          color: '#1D1D1F',
+          color: colors.text,
         }}>
           Meine Aufgaben
         </Text>
@@ -343,9 +363,9 @@ export function TaskListScreen() {
                 right: 3,
                 bottom: 3,
                 width: (tabContainerWidth - 6) / filters.length,
-                backgroundColor: '#FFFFFF',
-                borderRadius: 8,
-                transform: [{
+                      backgroundColor: colors.surface,
+                      borderRadius: 8,
+                      transform: [{
                   translateX: slideAnim.interpolate({
                     inputRange: filters.map((_, i) => i),
                     outputRange: filters.map((_, i) => {
@@ -378,7 +398,7 @@ export function TaskListScreen() {
               <Text style={{ 
                 fontSize: 13, 
                 fontWeight: filter === f.key ? '600' : '400', 
-                color: filter === f.key ? '#1D1D1F' : '#86868B',
+                color: filter === f.key ? colors.text : colors.textSecondary,
               }}>
                 {f.label}
               </Text>
@@ -388,11 +408,11 @@ export function TaskListScreen() {
       </View>
 
       {/* Task Count */}
-      <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
-        <Text style={{ fontSize: 13, color: '#86868B' }}>
+      {/* <View style={{ paddingHorizontal: 20, marginBottom: 12 }}>
+        <Text style={{ fontSize: 13, color: colors.textSecondary }}>
           {tasks.length} {tasks.length === 1 ? 'Aufgabe' : 'Aufgaben'}
         </Text>
-      </View>
+      </View> */}
 
       {/* Task List */}
       <FlatList
@@ -409,10 +429,17 @@ export function TaskListScreen() {
           <RefreshControl 
             refreshing={refreshing} 
             onRefresh={handleRefresh}
-            tintColor="#007AFF"
+            tintColor={colors.accent}
+            colors={[colors.accent]} // Android
+            progressBackgroundColor={colors.surface} // Android
+            title="Aktualisieren..." // iOS
+            titleColor={colors.textSecondary} // iOS
           />
         }
         showsVerticalScrollIndicator={false}
+        scrollEnabled={true}
+        bounces={true} // Enable bounce effect for pull-to-refresh
+        alwaysBounceVertical={true} // Always allow vertical bounce
       />
     </SafeAreaView>
   );

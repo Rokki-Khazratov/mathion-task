@@ -22,6 +22,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { RootStackParamList, TaskStatus, CreateTaskInput, UpdateTaskInput } from '../lib/types';
 import { useTasks } from '../hooks';
+import { useThemeContext } from '../context/ThemeContext';
 
 type TaskDetailNavigationProp = NativeStackNavigationProp<RootStackParamList, 'TaskDetail'>;
 type TaskDetailRouteProp = RouteProp<RootStackParamList, 'TaskDetail'>;
@@ -38,6 +39,7 @@ export function TaskDetailScreen() {
   const navigation = useNavigation<TaskDetailNavigationProp>();
   const route = useRoute<TaskDetailRouteProp>();
   const { taskId } = route.params || {};
+  const { colors, isDark } = useThemeContext();
   
   const { getTask, createTask, updateTask, deleteTask, fetchTasks, loading } = useTasks();
   
@@ -233,67 +235,25 @@ export function TaskDetailScreen() {
       } else {
         await createTask(taskData as CreateTaskInput);
       }
-      // Fetch updated tasks before navigating back
+      // Fetch updated tasks and navigate to home with "alle" filter
       await fetchTasks();
-      navigation.goBack();
+      navigation.navigate('TaskList', { filter: 'all' });
     } catch (err) {
       Alert.alert('Fehler', 'Aufgabe konnte nicht gespeichert werden');
     }
   };
 
-  // Handle delete
+  // Handle delete - no confirmation, just delete and redirect
   const handleDelete = async () => {
-    console.log('handleDelete called, taskId:', taskId);
-    if (!taskId) {
-      console.log('No taskId, returning');
-      return;
-    }
-    
-    // Use native confirm for web compatibility
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm('Bist du sicher, dass du diese Aufgabe löschen möchtest?');
-      if (!confirmed) return;
-    } else {
-      // Use Alert.alert for native platforms
-      Alert.alert(
-        'Aufgabe löschen',
-        'Bist du sicher, dass du diese Aufgabe löschen möchtest?',
-        [
-          { text: 'Abbrechen', style: 'cancel' },
-          {
-            text: 'Löschen',
-            style: 'destructive',
-            onPress: async () => {
-              await performDelete();
-            },
-          },
-        ]
-      );
-      return;
-    }
-    
-    // Perform delete for web
-    await performDelete();
-  };
-  
-  // Perform the actual delete operation
-  const performDelete = async () => {
     if (!taskId) return;
     
-    console.log('Delete confirmed, calling deleteTask');
+    // Delete task immediately
     const success = await deleteTask(taskId);
-    console.log('Delete result:', success);
     
     if (success) {
-      // Fetch updated tasks and redirect immediately
+      // Fetch updated tasks and navigate to home with "alle" filter
       await fetchTasks();
-      navigation.goBack();
-    } else {
-      if (Platform.OS === 'web') {
-        window.alert('Fehler: Aufgabe konnte nicht gelöscht werden');
-      } else {
-        Alert.alert('Fehler', 'Aufgabe konnte nicht gelöscht werden');
-      }
+      navigation.navigate('TaskList', { filter: 'all' });
     }
   };
 
@@ -304,15 +264,15 @@ export function TaskDetailScreen() {
 
   if (initialLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F7', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={{ marginTop: 16, color: '#86868B' }}>Aufgabe wird geladen...</Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={colors.accent} />
+        <Text style={{ marginTop: 16, color: colors.textSecondary }}>Aufgabe wird geladen...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F7' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -326,20 +286,57 @@ export function TaskDetailScreen() {
           paddingTop: 12,
           paddingBottom: 16,
         }}>
+          {/* Zurück pill button */}
           <TouchableOpacity 
             onPress={handleBack}
-            style={{ flexDirection: 'row', alignItems: 'center' }}
+            activeOpacity={0.8}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 999,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
           >
-            <Ionicons name="chevron-back" size={24} color="#007AFF" />
-            <Text style={{ fontSize: 17, color: '#007AFF' }}>Zurück</Text>
+            <Ionicons name="chevron-back" size={18} color={colors.text} />
+            <Text style={{ 
+              fontSize: 15, 
+              fontWeight: '500', 
+              color: colors.text,
+              marginLeft: 4,
+            }}>
+              Zurück
+            </Text>
           </TouchableOpacity>
           
+          {/* Speichern primary pill */}
           <TouchableOpacity 
             onPress={handleSave}
             disabled={loading}
-            style={{ opacity: loading ? 0.5 : 1 }}
+            activeOpacity={0.8}
+            style={{ 
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 18,
+              paddingVertical: 9,
+              borderRadius: 999,
+              backgroundColor: colors.accent,
+              opacity: loading ? 0.7 : 1,
+              shadowColor: colors.accent,
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.25,
+              shadowRadius: 6,
+              elevation: 3,
+            }}
           >
-            <Text style={{ fontSize: 17, fontWeight: '600', color: '#007AFF' }}>
+            <Text style={{ 
+              fontSize: 15, 
+              fontWeight: '600', 
+              color: '#FFFFFF',
+            }}>
               {loading ? 'Speichern...' : 'Speichern'}
             </Text>
           </TouchableOpacity>
@@ -354,7 +351,7 @@ export function TaskDetailScreen() {
           <Text style={{ 
             fontSize: 28, 
             fontWeight: '700', 
-            color: '#1D1D1F',
+            color: colors.text,
             marginBottom: 24,
           }}>
             {isEditMode ? 'Aufgabe bearbeiten' : 'Neue Aufgabe'}
@@ -362,18 +359,18 @@ export function TaskDetailScreen() {
 
           {/* Form Card */}
           <View style={{ 
-            backgroundColor: '#FFFFFF', 
+            backgroundColor: colors.surface, 
             borderRadius: 16, 
             padding: 20,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.05,
+            shadowOpacity: isDark ? 0.2 : 0.05,
             shadowRadius: 8,
             marginBottom: 20,
           }}>
             {/* Title Input */}
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#86868B', marginBottom: 8, textTransform: 'uppercase' }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 8, textTransform: 'uppercase' }}>
                 Titel
               </Text>
               <TextInput
@@ -382,15 +379,15 @@ export function TaskDetailScreen() {
                 placeholder="Aufgabentitel eingeben"
                 placeholderTextColor="#C7C7CC"
                 style={{
-                  backgroundColor: '#F2F2F7',
+                  backgroundColor: colors.border,
                   borderRadius: 10,
                   padding: 14,
                   fontSize: 16,
-                  color: '#1D1D1F',
+                  color: colors.text,
                 }}
               />
               {validationError && !title && (
-                <Text style={{ color: '#FF3B30', fontSize: 13, marginTop: 6 }}>
+                <Text style={{ color: colors.error, fontSize: 13, marginTop: 6 }}>
                   {validationError}
                 </Text>
               )}
@@ -398,23 +395,23 @@ export function TaskDetailScreen() {
 
             {/* Description Input */}
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#86868B', marginBottom: 8, textTransform: 'uppercase' }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 8, textTransform: 'uppercase' }}>
                 Beschreibung
               </Text>
               <TextInput
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Beschreibung hinzufügen (optional)"
-                placeholderTextColor="#C7C7CC"
+                placeholderTextColor={colors.textSecondary}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
                 style={{
-                  backgroundColor: '#F2F2F7',
+                  backgroundColor: colors.border,
                   borderRadius: 10,
                   padding: 14,
                   fontSize: 16,
-                  color: '#1D1D1F',
+                  color: colors.text,
                   minHeight: 100,
                 }}
               />
@@ -422,13 +419,13 @@ export function TaskDetailScreen() {
 
             {/* Status Selector with Animation */}
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#86868B', marginBottom: 8, textTransform: 'uppercase' }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 8, textTransform: 'uppercase' }}>
                 Status
               </Text>
               <View 
                 style={{ 
                   flexDirection: 'row', 
-                  backgroundColor: '#F2F2F7', 
+                  backgroundColor: colors.border, 
                   borderRadius: 10, 
                   padding: 3,
                   position: 'relative',
@@ -447,10 +444,10 @@ export function TaskDetailScreen() {
                       right: 3,
                       bottom: 3,
                       width: (statusContainerWidth - 6) / statusOptions.length,
-                      backgroundColor: statusOptions[statusIndex]?.bg || '#FFFFFF',
+                      backgroundColor: statusOptions[statusIndex]?.bg || colors.surface,
                       borderRadius: 8,
                       borderWidth: 1.5,
-                      borderColor: statusOptions[statusIndex]?.color || '#FFFFFF',
+                      borderColor: statusOptions[statusIndex]?.color || colors.accent,
                       transform: [{
                         translateX: statusSlideAnim.interpolate({
                           inputRange: statusOptions.map((_, i) => i),
@@ -487,7 +484,7 @@ export function TaskDetailScreen() {
                     <Text style={{ 
                       fontSize: 14, 
                       fontWeight: status === option.key ? '600' : '400', 
-                      color: status === option.key ? option.color : '#86868B',
+                      color: status === option.key ? option.color : colors.textSecondary,
                     }}>
                       {option.label}
                     </Text>
@@ -498,7 +495,7 @@ export function TaskDetailScreen() {
 
             {/* Deadline Picker */}
             <View>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: '#86868B', marginBottom: 8, textTransform: 'uppercase' }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 8, textTransform: 'uppercase' }}>
                 Frist
               </Text>
               <TouchableOpacity
@@ -506,16 +503,16 @@ export function TaskDetailScreen() {
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  backgroundColor: '#F2F2F7',
+                  backgroundColor: colors.border,
                   borderRadius: 10,
                   padding: 14,
                 }}
               >
-                <Ionicons name="calendar-outline" size={20} color="#86868B" style={{ marginRight: 10 }} />
+                <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} style={{ marginRight: 10 }} />
                 <Text style={{
                   flex: 1,
                   fontSize: 16,
-                  color: deadline ? '#1D1D1F' : '#C7C7CC',
+                  color: deadline ? colors.text : colors.textSecondary,
                 }}>
                   {deadline 
                     ? new Date(deadline).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -529,7 +526,7 @@ export function TaskDetailScreen() {
                     }}
                     style={{ marginLeft: 8 }}
                   >
-                    <Ionicons name="close-circle" size={20} color="#86868B" />
+                    <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
                   </TouchableOpacity>
                 )}
               </TouchableOpacity>
@@ -541,7 +538,7 @@ export function TaskDetailScreen() {
             <TouchableOpacity 
               onPress={handleDelete}
               style={{
-                backgroundColor: '#FFFFFF',
+                backgroundColor: colors.surface,
                 borderRadius: 16,
                 padding: 16,
                 alignItems: 'center',
@@ -571,7 +568,7 @@ export function TaskDetailScreen() {
             justifyContent: 'flex-end',
           }}>
             <View style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: colors.surface,
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
               paddingTop: 20,
@@ -586,13 +583,13 @@ export function TaskDetailScreen() {
                 paddingHorizontal: 20,
                 paddingBottom: 16,
                 borderBottomWidth: 0.5,
-                borderBottomColor: '#E5E5EA',
+                borderBottomColor: colors.border,
               }}>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: '#1D1D1F' }}>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: colors.text }}>
                   Datum auswählen
                 </Text>
                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Ionicons name="close" size={24} color="#1D1D1F" />
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
 

@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../lib/types';
 import { useAuth } from '../hooks';
 import { AuthScreen, TaskListScreen, TaskDetailScreen, ProfileScreen } from '../screens';
+import { useThemeContext } from '../context/ThemeContext';
 
 // Tab param list
 type TabParamList = {
@@ -89,20 +90,23 @@ function CreateTaskScreen() {
  * Main Tab Navigator
  */
 function MainTabs() {
+  const { colors, isDark } = useThemeContext();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.surface,
           borderTopWidth: 0.5,
-          borderTopColor: '#E5E5EA',
+          borderTopColor: colors.border,
           paddingTop: 8,
           paddingBottom: 28,
           height: 80,
         },
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: '#86868B',
+        // Dark theme: active icons/labels are white, light theme: use accent
+        tabBarActiveTintColor: isDark ? '#FFFFFF' : colors.accent,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '500',
@@ -130,17 +134,22 @@ function MainTabs() {
               width: 44,
               height: 44,
               borderRadius: 22,
-              backgroundColor: '#007AFF',
+              // In dark theme show white pill with accent plus icon, in light keep accent pill
+              backgroundColor: isDark ? '#FFFFFF' : colors.accent,
               justifyContent: 'center',
               alignItems: 'center',
               marginBottom: 20,
-              shadowColor: '#007AFF',
+              shadowColor: isDark ? '#000000' : '#007AFF',
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.3,
               shadowRadius: 8,
               elevation: 4,
             }}>
-              <Ionicons name="add" size={28} color="#FFFFFF" />
+              <Ionicons
+                name="add"
+                size={28}
+                color={isDark ? colors.accent : '#FFFFFF'}
+              />
             </View>
           ),
         }}
@@ -175,9 +184,9 @@ export function RootNavigator() {
   // Loading screen while checking auth state
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F5F7' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={{ marginTop: 16, color: '#86868B' }}>Laden...</Text>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000000' }}>
+        <ActivityIndicator size="large" color="#0A84FF" />
+        <Text style={{ marginTop: 16, color: '#98989D' }}>Laden...</Text>
       </View>
     );
   }

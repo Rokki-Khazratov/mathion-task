@@ -11,11 +11,12 @@ export const Colors = {
     error: '#FF3B30',
   },
   dark: {
-    background: '#000000',
-    surface: '#1C1C1E',
-    text: '#FFFFFF',
-    textSecondary: '#98989D',
-    border: '#38383A',
+    // Softer, more modern dark palette (Apple-like)
+    background: '#111114',
+    surface: '#1C1C1F',
+    text: '#F5F5F7',
+    textSecondary: '#A0A0A6',
+    border: '#2C2C2E',
     accent: '#0A84FF',
     success: '#30D158',
     warning: '#FF9F0A',

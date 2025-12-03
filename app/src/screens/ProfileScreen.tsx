@@ -12,7 +12,7 @@ const APP_VERSION = '1.0.0';
  */
 export function ProfileScreen() {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme, isDark } = useThemeContext();
+  const { theme, toggleTheme, isDark, colors } = useThemeContext();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false); // Default OFF
   
   // Sync local state with theme context
@@ -46,11 +46,11 @@ export function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F7' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView style={{ flex: 1 }}>
         {/* Header */}
         <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
-          <Text style={{ fontSize: 28, fontWeight: '700', color: '#1D1D1F' }}>
+          <Text style={{ fontSize: 28, fontWeight: '700', color: colors.text }}>
             Profil
           </Text>
         </View>
@@ -58,7 +58,7 @@ export function ProfileScreen() {
         {/* User Card */}
         <View style={{ 
           marginHorizontal: 20, 
-          backgroundColor: '#FFFFFF', 
+          backgroundColor: colors.surface, 
           borderRadius: 16, 
           padding: 20,
           shadowColor: '#000',
@@ -82,7 +82,7 @@ export function ProfileScreen() {
                 {getInitial()}
               </Text>
             </View>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: '#1D1D1F' }}>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text }}>
               {user?.email || 'Benutzer'}
             </Text>
           </View>
@@ -90,12 +90,12 @@ export function ProfileScreen() {
 
         {/* Settings Section */}
         <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: '#86868B', marginBottom: 12, textTransform: 'uppercase' }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: 12, textTransform: 'uppercase' }}>
             Einstellungen
           </Text>
           
           <View style={{ 
-            backgroundColor: '#FFFFFF', 
+            backgroundColor: colors.surface, 
             borderRadius: 16,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
@@ -110,8 +110,8 @@ export function ProfileScreen() {
               borderBottomWidth: 0.5,
               borderBottomColor: '#E5E5EA',
             }}>
-              <Ionicons name="moon-outline" size={22} color="#1D1D1F" />
-              <Text style={{ flex: 1, marginLeft: 12, fontSize: 16, color: '#1D1D1F' }}>
+              <Ionicons name="moon-outline" size={22} color={colors.text} />
+              <Text style={{ flex: 1, marginLeft: 12, fontSize: 16, color: colors.text }}>
                 Dunkelmodus
               </Text>
               <Switch
@@ -131,8 +131,8 @@ export function ProfileScreen() {
               borderBottomWidth: 0.5,
               borderBottomColor: '#E5E5EA',
             }}>
-              <Ionicons name="notifications-outline" size={22} color="#1D1D1F" />
-              <Text style={{ flex: 1, marginLeft: 12, fontSize: 16, color: '#1D1D1F' }}>
+              <Ionicons name="notifications-outline" size={22} color={colors.text} />
+              <Text style={{ flex: 1, marginLeft: 12, fontSize: 16, color: colors.text }}>
                 Benachrichtigungen
               </Text>
               <Switch
@@ -150,12 +150,12 @@ export function ProfileScreen() {
               alignItems: 'center',
               padding: 16,
             }}>
-              <Ionicons name="language-outline" size={22} color="#1D1D1F" />
-              <Text style={{ flex: 1, marginLeft: 12, fontSize: 16, color: '#1D1D1F' }}>
+              <Ionicons name="language-outline" size={22} color={colors.text} />
+              <Text style={{ flex: 1, marginLeft: 12, fontSize: 16, color: colors.text }}>
                 Sprache
               </Text>
-              <Text style={{ fontSize: 16, color: '#86868B', marginRight: 8 }}>Deutsch</Text>
-              <Ionicons name="chevron-forward" size={20} color="#86868B" />
+              <Text style={{ fontSize: 16, color: colors.textSecondary, marginRight: 8 }}>Deutsch</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -165,7 +165,7 @@ export function ProfileScreen() {
           <TouchableOpacity 
             onPress={handleLogout}
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: colors.surface,
               borderRadius: 16,
               padding: 16,
               alignItems: 'center',
@@ -183,7 +183,7 @@ export function ProfileScreen() {
 
         {/* Version */}
         <View style={{ paddingHorizontal: 20, marginBottom: 40, alignItems: 'center' }}>
-          <Text style={{ fontSize: 12, color: '#86868B' }}>
+          <Text style={{ fontSize: 12, color: colors.textSecondary }}>
             Version {APP_VERSION}
           </Text>
         </View>

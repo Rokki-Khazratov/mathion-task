@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, SafeAreaView, KeyboardAvoidingView, Platform, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks';
+import { useThemeContext } from '../context/ThemeContext';
 
 type AuthMode = 'login' | 'register';
 
@@ -25,6 +26,7 @@ export function AuthScreen() {
   const [validationError, setValidationError] = useState<string | null>(null);
   
   const { login, register, loading, error } = useAuth();
+  const { colors, isDark } = useThemeContext();
 
   const isLogin = mode === 'login';
 
@@ -68,14 +70,14 @@ export function AuthScreen() {
   // TODO: Add theme support
   
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F7' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
           {/* Title */}
-          <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#1D1D1F', marginBottom: 32, textAlign: 'center' }}>
+          <Text style={{ fontSize: 32, fontWeight: 'bold', color: colors.text, marginBottom: 32, textAlign: 'center' }}>
             {isLogin ? 'Willkommen zurück' : 'Konto erstellen'}
           </Text>
           
@@ -85,13 +87,13 @@ export function AuthScreen() {
               onPress={() => setMode('login')}
               style={{
                 flex: 1,
-                backgroundColor: isLogin ? '#FFFFFF' : 'transparent',
+                backgroundColor: isLogin ? colors.surface : 'transparent',
                 borderRadius: 8,
                 padding: 12,
                 alignItems: 'center',
               }}
             >
-              <Text style={{ fontSize: 16, fontWeight: isLogin ? '600' : '400', color: '#1D1D1F' }}>
+              <Text style={{ fontSize: 16, fontWeight: isLogin ? '600' : '400', color: colors.text }}>
                 Anmelden
               </Text>
             </TouchableOpacity>
@@ -99,7 +101,7 @@ export function AuthScreen() {
               onPress={() => setMode('register')}
               style={{
                 flex: 1,
-                backgroundColor: !isLogin ? '#FFFFFF' : 'transparent',
+                backgroundColor: !isLogin ? colors.surface : 'transparent',
                 borderRadius: 8,
                 padding: 12,
                 alignItems: 'center',
@@ -112,33 +114,33 @@ export function AuthScreen() {
           </View>
           
           {/* Form Card */}
-          <View style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 }}>
+          <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: isDark ? 0.2 : 0.1, shadowRadius: 8 }}>
             {/* Email Input */}
             <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#1D1D1F', marginBottom: 8 }}>E-Mail</Text>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 8 }}>E-Mail</Text>
               <TextInput
                 value={email}
                 onChangeText={setEmail}
                 placeholder="Deine E-Mail-Adresse eingeben"
-                placeholderTextColor="#86868B"
+                placeholderTextColor={colors.textSecondary}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                style={{ backgroundColor: '#F2F2F7', borderRadius: 12, padding: 12, fontSize: 16, color: '#1D1D1F' }}
+                style={{ backgroundColor: colors.border, borderRadius: 12, padding: 12, fontSize: 16, color: colors.text }}
               />
             </View>
             
             {/* Password Input */}
             <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#1D1D1F', marginBottom: 8 }}>Passwort</Text>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Passwort</Text>
               <View style={{ position: 'relative' }}>
                 <TextInput
                   value={password}
                   onChangeText={setPassword}
                   placeholder="Dein Passwort eingeben"
-                  placeholderTextColor="#86868B"
+                  placeholderTextColor={colors.textSecondary}
                   secureTextEntry={!showPassword}
-                  style={{ backgroundColor: '#F2F2F7', borderRadius: 12, padding: 12, paddingRight: 45, fontSize: 16, color: '#1D1D1F' }}
+                  style={{ backgroundColor: colors.border, borderRadius: 12, padding: 12, paddingRight: 45, fontSize: 16, color: colors.text }}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
@@ -147,7 +149,7 @@ export function AuthScreen() {
                   <Ionicons 
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'} 
                     size={20} 
-                    color="#86868B" 
+                    color={colors.textSecondary} 
                   />
                 </TouchableOpacity>
               </View>
@@ -156,15 +158,15 @@ export function AuthScreen() {
             {/* Confirm Password (register only) */}
             {!isLogin && (
               <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1D1D1F', marginBottom: 8 }}>Passwort bestätigen</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 8 }}>Passwort bestätigen</Text>
                 <View style={{ position: 'relative' }}>
                   <TextInput
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     placeholder="Passwort bestätigen"
-                    placeholderTextColor="#86868B"
+                    placeholderTextColor={colors.textSecondary}
                     secureTextEntry={!showConfirmPassword}
-                    style={{ backgroundColor: '#F2F2F7', borderRadius: 12, padding: 12, paddingRight: 45, fontSize: 16, color: '#1D1D1F' }}
+                    style={{ backgroundColor: colors.border, borderRadius: 12, padding: 12, paddingRight: 45, fontSize: 16, color: colors.text }}
                   />
                   <TouchableOpacity
                     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
