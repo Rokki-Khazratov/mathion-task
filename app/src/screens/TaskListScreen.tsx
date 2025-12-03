@@ -57,14 +57,17 @@ export function TaskListScreen() {
   // Animation for filter indicator
   const slideAnim = useRef(new Animated.Value(0)).current;
   const filterIndex = filters.findIndex(f => f.key === filter);
+  const prevParamsRef = useRef<any>(null);
   
-  // Set filter from route params if provided
+  // Set filter from route params if provided (only once when params change)
   useEffect(() => {
     const params = route.params as { filter?: TaskFilter } | undefined;
-    if (params?.filter) {
+    // Only update if params actually changed
+    if (params && params.filter && prevParamsRef.current !== params) {
+      prevParamsRef.current = params;
       setFilter(params.filter);
     }
-  }, [route.params, setFilter]);
+  }, [route.params]); // Remove setFilter from deps
 
   // Animate filter indicator when filter changes
   useEffect(() => {

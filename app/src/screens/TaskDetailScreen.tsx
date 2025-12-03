@@ -19,10 +19,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute, CompositeNavigationProp, CommonActions } from '@react-navigation/native';
 import { RootStackParamList, TaskStatus, CreateTaskInput, UpdateTaskInput } from '../lib/types';
 import { useTasks } from '../hooks';
 import { useThemeContext } from '../context/ThemeContext';
+import { Toast } from '../components/ui';
 
 type TaskDetailNavigationProp = NativeStackNavigationProp<RootStackParamList, 'TaskDetail'>;
 type TaskDetailRouteProp = RouteProp<RootStackParamList, 'TaskDetail'>;
@@ -35,7 +36,11 @@ const statusOptions: { key: TaskStatus; label: string; color: string; bg: string
 ];
 
 
-export function TaskDetailScreen() {
+interface TaskDetailScreenProps {
+  onCreateSuccess?: () => void; // Callback for successful task creation (used by CreateTab)
+}
+
+export function TaskDetailScreen({ onCreateSuccess }: TaskDetailScreenProps = {}) {
   const navigation = useNavigation<TaskDetailNavigationProp>();
   const route = useRoute<TaskDetailRouteProp>();
   const { taskId } = route.params || {};
@@ -51,6 +56,11 @@ export function TaskDetailScreen() {
   const [initialLoading, setInitialLoading] = useState(!!taskId);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [statusContainerWidth, setStatusContainerWidth] = useState(0);
+  
+  // Toast state
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
   
   // Date picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -107,9 +117,12 @@ export function TaskDetailScreen() {
     ? Array.from({ length: getDaysInMonth(selectedMonth, selectedYear) }, (_, i) => i + 1)
     : Array.from({ length: 31 }, (_, i) => i + 1);
 
-  // Parse deadline on load
+  // Track if date change is from internal (picker) or external (API load)
+  const isInternalDateChange = useRef(false);
+  
+  // Parse deadline on load - only when loading from API
   useEffect(() => {
-    if (deadline) {
+    if (deadline && !isInternalDateChange.current) {
       const date = new Date(deadline);
       if (!isNaN(date.getTime())) {
         setSelectedDay(date.getDate());
@@ -117,15 +130,9 @@ export function TaskDetailScreen() {
         setSelectedYear(date.getFullYear());
       }
     }
+    isInternalDateChange.current = false;
   }, [deadline]);
 
-  // Update deadline when date parts change
-  useEffect(() => {
-    if (selectedDay && selectedMonth && selectedYear) {
-      const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
-      setDeadline(dateStr);
-    }
-  }, [selectedDay, selectedMonth, selectedYear]);
 
   // Refs for scrolling to selected values
   const dayListRef = useRef<FlatList>(null);
@@ -172,6 +179,7 @@ export function TaskDetailScreen() {
   // Confirm date selection
   const confirmDate = () => {
     if (selectedDay && selectedMonth && selectedYear) {
+      isInternalDateChange.current = true;
       const dateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
       setDeadline(dateStr);
     }
@@ -180,6 +188,7 @@ export function TaskDetailScreen() {
 
   // Clear date
   const clearDate = () => {
+    isInternalDateChange.current = true;
     setDeadline('');
     setSelectedDay(null);
     setSelectedMonth(null);
@@ -231,15 +240,63 @@ export function TaskDetailScreen() {
     
     try {
       if (isEditMode && taskId) {
-        await updateTask(taskId, taskData);
+        const result = await updateTask(taskId, taskData);
+        if (result) {
+          // Show success toast
+          setToastMessage('Aufgabe erfolgreich aktualisiert');
+          setToastType('success');
+          setToastVisible(true);
+          
+          // Fetch updated tasks first
+          await fetchTasks();
+          
+          // Navigate to HomeTab (which contains TasksStack) with filter 'all'
+          // Use parent navigator if available (for Tab navigation)
+          const parent = navigation.getParent();
+          if (parent) {
+            // We're in Tab Navigator, navigate to HomeTab
+            setTimeout(() => {
+              parent.navigate('HomeTab', { screen: 'TaskList', params: { filter: 'all' } });
+            }, 300);
+          } else {
+            // We're in Stack Navigator, navigate directly
+            setTimeout(() => {
+              navigation.navigate('TaskList', { filter: 'all' });
+            }, 300);
+          }
+        } else {
+          throw new Error('Update failed');
+        }
       } else {
-        await createTask(taskData as CreateTaskInput);
+        const result = await createTask(taskData as CreateTaskInput);
+        if (result) {
+          // Show success toast
+          setToastMessage('Aufgabe erfolgreich erstellt');
+          setToastType('success');
+          setToastVisible(true);
+          
+          // Fetch updated tasks first
+          await fetchTasks();
+          
+          // Navigate to HomeTab
+          setTimeout(() => {
+            if (onCreateSuccess) {
+              // Use callback from CreateTab (navigates to HomeTab)
+              onCreateSuccess();
+            } else {
+              // Fallback: navigate directly (when in TasksStack)
+              navigation.navigate('TaskList', { filter: 'all' });
+            }
+          }, 300);
+        } else {
+          throw new Error('Create failed');
+        }
       }
-      // Fetch updated tasks and navigate to home with "alle" filter
-      await fetchTasks();
-      navigation.navigate('TaskList', { filter: 'all' });
     } catch (err) {
-      Alert.alert('Fehler', 'Aufgabe konnte nicht gespeichert werden');
+      // Show error toast
+      setToastMessage('Aufgabe konnte nicht gespeichert werden');
+      setToastType('error');
+      setToastVisible(true);
     }
   };
 
@@ -247,13 +304,41 @@ export function TaskDetailScreen() {
   const handleDelete = async () => {
     if (!taskId) return;
     
-    // Delete task immediately
-    const success = await deleteTask(taskId);
-    
-    if (success) {
-      // Fetch updated tasks and navigate to home with "alle" filter
-      await fetchTasks();
-      navigation.navigate('TaskList', { filter: 'all' });
+    try {
+      // Delete task immediately
+      const success = await deleteTask(taskId);
+      
+      if (success) {
+        // Show success toast
+        setToastMessage('Aufgabe erfolgreich gelöscht');
+        setToastType('success');
+        setToastVisible(true);
+        
+        // Fetch updated tasks first
+        await fetchTasks();
+        
+        // Navigate to HomeTab (which contains TasksStack) with filter 'all'
+        // Use parent navigator if available (for Tab navigation)
+        const parent = navigation.getParent();
+        if (parent) {
+          // We're in Tab Navigator, navigate to HomeTab
+          setTimeout(() => {
+            parent.navigate('HomeTab', { screen: 'TaskList', params: { filter: 'all' } });
+          }, 300);
+        } else {
+          // We're in Stack Navigator, navigate directly
+          setTimeout(() => {
+            navigation.navigate('TaskList', { filter: 'all' });
+          }, 300);
+        }
+      } else {
+        throw new Error('Delete failed');
+      }
+    } catch (err) {
+      // Show error toast
+      setToastMessage('Aufgabe konnte nicht gelöscht werden');
+      setToastType('error');
+      setToastVisible(true);
     }
   };
 
@@ -867,6 +952,15 @@ export function TaskDetailScreen() {
           </View>
         </Modal>
       </KeyboardAvoidingView>
+      
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        visible={toastVisible}
+        onHide={() => setToastVisible(false)}
+        duration={2000}
+      />
     </SafeAreaView>
   );
 }

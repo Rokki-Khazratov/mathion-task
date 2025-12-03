@@ -15,6 +15,7 @@ type AuthMode = 'login' | 'register';
  * - Confirm password (register only)
  * - Form validation
  * - Error display
+ * - Email confirmation page after registration
  */
 export function AuthScreen() {
   const [mode, setMode] = useState<AuthMode>('login');
@@ -25,7 +26,7 @@ export function AuthScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   
-  const { login, register, loading, error } = useAuth();
+  const { login, register, loading, error, registrationSuccess, clearRegistrationSuccess } = useAuth();
   const { colors, isDark } = useThemeContext();
 
   const isLogin = mode === 'login';
@@ -33,6 +34,16 @@ export function AuthScreen() {
   // Toggle between login and register
   const toggleMode = () => {
     setMode(isLogin ? 'register' : 'login');
+    setValidationError(null);
+  };
+
+  // Navigate to login after registration confirmation
+  const goToLogin = () => {
+    clearRegistrationSuccess();
+    setMode('login');
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
     setValidationError(null);
   };
 
@@ -65,9 +76,99 @@ export function AuthScreen() {
     }
   };
 
-  // TODO: Implement styling with NativeWind
-  // TODO: Add keyboard avoiding view for iOS
-  // TODO: Add theme support
+  // Show email confirmation page after successful registration
+  if (registrationSuccess) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flex: 1, justifyContent: 'center', padding: 20, alignItems: 'center' }}>
+          {/* Success Icon */}
+          <View style={{
+            width: 80,
+            height: 80,
+            borderRadius: 40,
+            backgroundColor: '#34C759',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 24,
+          }}>
+            <Ionicons name="mail-outline" size={40} color="#FFFFFF" />
+          </View>
+          
+          {/* Title */}
+          <Text style={{
+            fontSize: 28,
+            fontWeight: 'bold',
+            color: colors.text,
+            marginBottom: 16,
+            textAlign: 'center',
+          }}>
+            Bestätige deine E-Mail
+          </Text>
+          
+          {/* Description */}
+          <Text style={{
+            fontSize: 16,
+            color: colors.textSecondary,
+            textAlign: 'center',
+            marginBottom: 32,
+            lineHeight: 24,
+            paddingHorizontal: 20,
+          }}>
+            Wir haben dir eine Bestätigungs-E-Mail gesendet. Bitte überprüfe dein Postfach und klicke auf den Link, um dein Konto zu aktivieren.
+          </Text>
+          
+          {/* Info Card */}
+          <View style={{
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            padding: 20,
+            width: '100%',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: isDark ? 0.2 : 0.1,
+            shadowRadius: 8,
+            marginBottom: 32,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <Ionicons name="information-circle-outline" size={20} color={colors.accent} />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginLeft: 8 }}>
+                Hinweis
+              </Text>
+            </View>
+            <Text style={{ fontSize: 14, color: colors.textSecondary, lineHeight: 20 }}>
+              Überprüfe auch deinen Spam-Ordner, falls du die E-Mail nicht findest.
+            </Text>
+          </View>
+          
+          {/* Go to Login Button */}
+          <TouchableOpacity
+            onPress={goToLogin}
+            style={{
+              backgroundColor: colors.accent,
+              borderRadius: 25,
+              paddingVertical: 16,
+              paddingHorizontal: 32,
+              alignItems: 'center',
+              width: '100%',
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
+              Zur Anmeldung
+            </Text>
+          </TouchableOpacity>
+          
+          {/* Secondary Link */}
+          <Text
+            onPress={goToLogin}
+            style={{ marginTop: 20, textAlign: 'center', color: colors.textSecondary, fontSize: 14 }}
+          >
+            E-Mail bestätigt?{' '}
+            <Text style={{ color: colors.accent, fontWeight: '500' }}>Jetzt anmelden</Text>
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
   
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>

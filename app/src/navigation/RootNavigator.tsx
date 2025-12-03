@@ -5,9 +5,9 @@
 
 import React, { useEffect, useRef } from 'react';
 import { View, ActivityIndicator, Text, Animated, Easing } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator, BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../lib/types';
 import { useAuth } from '../hooks';
@@ -56,6 +56,7 @@ function TasksStack() {
 function CreateTaskScreen() {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const navigation = useNavigation<BottomTabNavigationProp<TabParamList>>();
 
   useEffect(() => {
     // Animate in when screen mounts
@@ -75,13 +76,21 @@ function CreateTaskScreen() {
     ]).start();
   }, []);
 
+  // Callback for successful task creation - navigate to HomeTab
+  const handleCreateSuccess = () => {
+    navigation.navigate('HomeTab', { 
+      screen: 'TaskList', 
+      params: { filter: 'all' } 
+    } as any);
+  };
+
   return (
     <Animated.View style={{ 
       flex: 1, 
       transform: [{ scale: scaleAnim }],
       opacity: opacityAnim,
     }}>
-      <TaskDetailScreen />
+      <TaskDetailScreen onCreateSuccess={handleCreateSuccess} />
     </Animated.View>
   );
 }
@@ -177,9 +186,10 @@ function MainTabs() {
 /**
  * Root Navigator
  * Switches between Auth and Main tabs based on auth state
+ * Uses session (not user) to ensure email is confirmed
  */
 export function RootNavigator() {
-  const { user, loading } = useAuth();
+  const { session, loading } = useAuth();
   
   // Loading screen while checking auth state
   if (loading) {
@@ -193,7 +203,7 @@ export function RootNavigator() {
   
   return (
     <NavigationContainer>
-      {user ? <MainTabs /> : <AuthStack />}
+      {session ? <MainTabs /> : <AuthStack />}
     </NavigationContainer>
   );
 }

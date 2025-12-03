@@ -8,10 +8,12 @@ interface AuthContextValue {
   session: Session | null;
   loading: boolean;
   error: string | null;
+  registrationSuccess: boolean; // True after successful registration (email confirmation required)
   login: (credentials: AuthCredentials) => Promise<void>;
   register: (credentials: AuthCredentials) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
+  clearRegistrationSuccess: () => void;
 }
 
 // Create context with default values
@@ -27,6 +29,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   // Initialize auth state on mount
   useEffect(() => {
@@ -87,6 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const register = async (credentials: AuthCredentials): Promise<void> => {
     setLoading(true);
     setError(null);
+    setRegistrationSuccess(false);
     try {
       const { data, error } = await supabase.auth.signUp({
         email: credentials.email,
@@ -98,12 +102,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       if (data.session) {
+        // Email confirmation disabled - user can login immediately
         setSession(data.session as any);
         setUser(data.user as User);
       } else if (data.user) {
         // User created but email confirmation required
-        setUser(data.user as User);
-        setError('Bitte bestätige deine E-Mail-Adresse');
+        // Do NOT set user - show confirmation page instead
+        setRegistrationSuccess(true);
       }
     } catch (err: any) {
       const errorMessage = err?.message || 'Registrierung fehlgeschlagen';
@@ -131,15 +136,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Clear error
   const clearError = () => setError(null);
 
+  // Clear registration success state (when navigating back to login)
+  const clearRegistrationSuccess = () => setRegistrationSuccess(false);
+
   const value: AuthContextValue = {
     user,
     session,
     loading,
     error,
+    registrationSuccess,
     login,
     register,
     logout,
     clearError,
+    clearRegistrationSuccess,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
