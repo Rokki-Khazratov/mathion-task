@@ -1,17 +1,26 @@
-import React from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks';
+
+// App version
+const APP_VERSION = '1.0.0';
 
 /**
  * Profile screen with user info and settings
  */
 export function ProfileScreen() {
   const { user, logout } = useAuth();
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   // Handle logout
   const handleLogout = async () => {
     await logout();
+  };
+
+  // Toggle notifications
+  const toggleNotifications = () => {
+    setNotificationsEnabled(prev => !prev);
   };
 
   // Get user initial
@@ -94,8 +103,8 @@ export function ProfileScreen() {
               <Ionicons name="chevron-forward" size={20} color="#86868B" />
             </TouchableOpacity>
 
-            {/* Notifications (placeholder) */}
-            <TouchableOpacity style={{
+            {/* Notifications with Switch */}
+            <View style={{
               flexDirection: 'row',
               alignItems: 'center',
               padding: 16,
@@ -106,8 +115,14 @@ export function ProfileScreen() {
               <Text style={{ flex: 1, marginLeft: 12, fontSize: 16, color: '#1D1D1F' }}>
                 Benachrichtigungen
               </Text>
-              <Ionicons name="chevron-forward" size={20} color="#86868B" />
-            </TouchableOpacity>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={toggleNotifications}
+                trackColor={{ false: '#E5E5EA', true: '#34C759' }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor="#E5E5EA"
+              />
+            </View>
 
             {/* Language (placeholder) */}
             <TouchableOpacity style={{
@@ -126,7 +141,7 @@ export function ProfileScreen() {
         </View>
 
         {/* Logout Button */}
-        <View style={{ paddingHorizontal: 20, marginBottom: 40 }}>
+        <View style={{ paddingHorizontal: 20, marginBottom: 8 }}>
           <TouchableOpacity 
             onPress={handleLogout}
             style={{
@@ -145,10 +160,16 @@ export function ProfileScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Version */}
+        <View style={{ paddingHorizontal: 20, marginBottom: 40, alignItems: 'center' }}>
+          <Text style={{ fontSize: 12, color: '#86868B' }}>
+            Version {APP_VERSION}
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 export default ProfileScreen;
-

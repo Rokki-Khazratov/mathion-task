@@ -3,8 +3,8 @@
  * Main navigation configuration with bottom tabs
  */
 
-import React from 'react';
-import { View, ActivityIndicator, Text } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, ActivityIndicator, Text, Animated, Easing } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -15,6 +15,7 @@ import { AuthScreen, TaskListScreen, TaskDetailScreen, ProfileScreen } from '../
 
 // Tab param list
 type TabParamList = {
+  HomeTab: undefined;
   TasksTab: undefined;
   CreateTab: undefined;
   ProfileTab: undefined;
@@ -49,9 +50,39 @@ function TasksStack() {
 
 /**
  * Create Task Screen (wrapper for TaskDetail in create mode)
+ * With entrance animation
  */
 function CreateTaskScreen() {
-  return <TaskDetailScreen />;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Animate in when screen mounts
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 80,
+        friction: 10,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.ease),
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ 
+      flex: 1, 
+      transform: [{ scale: scaleAnim }],
+      opacity: opacityAnim,
+    }}>
+      <TaskDetailScreen />
+    </Animated.View>
+  );
 }
 
 /**
@@ -80,12 +111,12 @@ function MainTabs() {
       }}
     >
       <Tab.Screen 
-        name="TasksTab" 
+        name="HomeTab" 
         component={TasksStack}
         options={{
-          tabBarLabel: 'Aufgaben',
+          tabBarLabel: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="checkbox-outline" size={24} color={color} />
+            <Ionicons name="home-outline" size={24} color={color} />
           ),
         }}
       />
@@ -103,11 +134,22 @@ function MainTabs() {
               justifyContent: 'center',
               alignItems: 'center',
               marginBottom: 20,
+              shadowColor: '#007AFF',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 4,
             }}>
               <Ionicons name="add" size={28} color="#FFFFFF" />
             </View>
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // Reset the create screen state when tapping the tab
+            // This ensures a fresh form each time
+          },
+        })}
       />
       <Tab.Screen 
         name="ProfileTab" 

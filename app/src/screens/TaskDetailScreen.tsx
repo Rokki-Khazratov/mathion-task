@@ -37,7 +37,7 @@ export function TaskDetailScreen() {
   const route = useRoute<TaskDetailRouteProp>();
   const { taskId } = route.params || {};
   
-  const { getTask, createTask, updateTask, deleteTask, loading } = useTasks();
+  const { getTask, createTask, updateTask, deleteTask, fetchTasks, loading } = useTasks();
   
   // Form state
   const [title, setTitle] = useState('');
@@ -54,6 +54,11 @@ export function TaskDetailScreen() {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   
   const isEditMode = !!taskId;
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('TaskDetailScreen - taskId:', taskId, 'isEditMode:', isEditMode);
+  }, [taskId, isEditMode]);
 
   // Generate date options
   const currentYear = new Date().getFullYear(); // Current year
@@ -211,6 +216,8 @@ export function TaskDetailScreen() {
       } else {
         await createTask(taskData as CreateTaskInput);
       }
+      // Fetch updated tasks before navigating back
+      await fetchTasks();
       navigation.goBack();
     } catch (err) {
       Alert.alert('Fehler', 'Aufgabe konnte nicht gespeichert werden');
@@ -219,7 +226,11 @@ export function TaskDetailScreen() {
 
   // Handle delete
   const handleDelete = () => {
-    if (!taskId) return;
+    console.log('handleDelete called, taskId:', taskId);
+    if (!taskId) {
+      console.log('No taskId, returning');
+      return;
+    }
     
     Alert.alert(
       'Aufgabe löschen',
@@ -230,8 +241,12 @@ export function TaskDetailScreen() {
           text: 'Löschen',
           style: 'destructive',
           onPress: async () => {
+            console.log('Delete confirmed, calling deleteTask');
             const success = await deleteTask(taskId);
+            console.log('Delete result:', success);
             if (success) {
+              // Fetch updated tasks before navigating back
+              await fetchTasks();
               navigation.goBack();
             } else {
               Alert.alert('Fehler', 'Aufgabe konnte nicht gelöscht werden');

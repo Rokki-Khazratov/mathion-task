@@ -1,6 +1,6 @@
 /**
  * useTasks hook
- * Manages task CRUD operations and state
+ * Manages task CRUD operations with Supabase API
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -22,16 +22,7 @@ interface UseTasksReturn {
 }
 
 /**
- * Hook for managing tasks
- * 
- * @example
- * const { tasks, loading, createTask, deleteTask } = useTasks();
- * 
- * // Create a new task
- * await createTask({ title: 'New Task', status: 'open' });
- * 
- * // Delete a task
- * await deleteTask('task-id');
+ * Hook for managing tasks with Supabase
  */
 export function useTasks(): UseTasksReturn {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -44,12 +35,20 @@ export function useTasks(): UseTasksReturn {
     setLoading(true);
     setError(null);
     try {
-      // TODO: Implement fetch from Supabase
-      // const { data, error } = await supabase.from('tasks').select('*');
-      console.log('Fetching tasks...');
-      setTasks([]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch tasks');
+      const { data, error: fetchError } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      setTasks(data || []);
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Aufgaben konnten nicht geladen werden';
+      setError(errorMessage);
+      console.error('Fetch tasks error:', err);
     } finally {
       setLoading(false);
     }
@@ -58,11 +57,21 @@ export function useTasks(): UseTasksReturn {
   // Get single task by ID
   const getTask = useCallback(async (id: string): Promise<Task | null> => {
     try {
-      // TODO: Implement fetch single task from Supabase
-      console.log('Getting task:', id);
-      return null;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get task');
+      const { data, error: fetchError } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      return data;
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Aufgabe konnte nicht geladen werden';
+      setError(errorMessage);
+      console.error('Get task error:', err);
       return null;
     }
   }, []);
@@ -72,51 +81,105 @@ export function useTasks(): UseTasksReturn {
     setLoading(true);
     setError(null);
     try {
-      // TODO: Implement create task in Supabase
-      console.log('Creating task:', input);
-      await fetchTasks(); // Refresh list
-      return null;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create task');
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Nicht angemeldet');
+      }
+
+      const { data, error: createError } = await supabase
+        .from('tasks')
+        .insert({
+          user_id: user.id,
+          title: input.title,
+          description: input.description || null,
+          status: input.status || 'open',
+          deadline: input.deadline || null,
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        throw createError;
+      }
+
+      // Add to local state
+      setTasks(prev => [data, ...prev]);
+      return data;
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Aufgabe konnte nicht erstellt werden';
+      setError(errorMessage);
+      console.error('Create task error:', err);
       return null;
     } finally {
       setLoading(false);
     }
-  }, [fetchTasks]);
+  }, []);
 
   // Update existing task
   const updateTask = useCallback(async (id: string, input: UpdateTaskInput): Promise<Task | null> => {
     setLoading(true);
     setError(null);
     try {
-      // TODO: Implement update task in Supabase
-      console.log('Updating task:', id, input);
-      await fetchTasks(); // Refresh list
-      return null;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update task');
+      const { data, error: updateError } = await supabase
+        .from('tasks')
+        .update({
+          ...input,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Update local state
+      setTasks(prev => prev.map(task => task.id === id ? data : task));
+      return data;
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Aufgabe konnte nicht aktualisiert werden';
+      setError(errorMessage);
+      console.error('Update task error:', err);
       return null;
     } finally {
       setLoading(false);
     }
-  }, [fetchTasks]);
+  }, []);
 
   // Delete task
   const deleteTask = useCallback(async (id: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
     try {
-      // TODO: Implement delete task in Supabase
-      console.log('Deleting task:', id);
-      await fetchTasks(); // Refresh list
+      console.log('Deleting task with ID:', id);
+      
+      const { data, error: deleteError } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', id)
+        .select(); // Add select to see what was deleted
+
+      console.log('Delete response:', { data, error: deleteError });
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      // Remove from local state
+      setTasks(prev => prev.filter(task => task.id !== id));
       return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete task');
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Aufgabe konnte nicht gelöscht werden';
+      setError(errorMessage);
+      console.error('Delete task error:', err);
       return false;
     } finally {
       setLoading(false);
     }
-  }, [fetchTasks]);
+  }, []);
 
   // Clear error
   const clearError = () => setError(null);
@@ -147,4 +210,3 @@ export function useTasks(): UseTasksReturn {
 }
 
 export default useTasks;
-
