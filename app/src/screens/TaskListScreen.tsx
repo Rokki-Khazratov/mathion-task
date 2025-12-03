@@ -37,7 +37,7 @@ const filters: { key: TaskFilter; label: string }[] = [
 // Status colors
 const statusConfig: Record<TaskStatus, { color: string; bg: string; label: string }> = {
   open: { color: '#007AFF', bg: '#E5F1FF', label: 'Offen' },
-  in_progress: { color: '#FF3B30', bg: '#FFEBEA', label: 'In Arbeit' },
+  in_progress: { color: '#FF9500', bg: '#FFF3E0', label: 'In Arbeit' }, // Orange
   done: { color: '#34C759', bg: '#E8F8ED', label: 'Erledigt' },
 };
 

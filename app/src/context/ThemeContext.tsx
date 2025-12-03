@@ -27,10 +27,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   // Get system color scheme
   const systemColorScheme = useColorScheme();
   
-  // Initialize theme based on system preference
-  const [theme, setThemeState] = useState<ThemeType>(
-    systemColorScheme === 'dark' ? 'dark' : 'light'
-  );
+  // Initialize theme - default to dark
+  const [theme, setThemeState] = useState<ThemeType>('dark');
 
   // Update theme when system preference changes
   useEffect(() => {

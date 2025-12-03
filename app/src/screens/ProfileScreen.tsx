@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks';
+import { useThemeContext } from '../context/ThemeContext';
 
 // App version
 const APP_VERSION = '1.0.0';
@@ -11,7 +12,15 @@ const APP_VERSION = '1.0.0';
  */
 export function ProfileScreen() {
   const { user, logout } = useAuth();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const { theme, toggleTheme, isDark } = useThemeContext();
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false); // Default OFF
+  
+  // Sync local state with theme context
+  const [darkModeEnabled, setDarkModeEnabled] = useState(isDark);
+  
+  useEffect(() => {
+    setDarkModeEnabled(isDark);
+  }, [isDark]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -21,6 +30,11 @@ export function ProfileScreen() {
   // Toggle notifications
   const toggleNotifications = () => {
     setNotificationsEnabled(prev => !prev);
+  };
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    toggleTheme();
   };
 
   // Get user initial
@@ -88,8 +102,8 @@ export function ProfileScreen() {
             shadowOpacity: 0.05,
             shadowRadius: 8,
           }}>
-            {/* Dark Mode Toggle (placeholder) */}
-            <TouchableOpacity style={{
+            {/* Dark Mode Toggle */}
+            <View style={{
               flexDirection: 'row',
               alignItems: 'center',
               padding: 16,
@@ -100,8 +114,14 @@ export function ProfileScreen() {
               <Text style={{ flex: 1, marginLeft: 12, fontSize: 16, color: '#1D1D1F' }}>
                 Dunkelmodus
               </Text>
-              <Ionicons name="chevron-forward" size={20} color="#86868B" />
-            </TouchableOpacity>
+              <Switch
+                value={darkModeEnabled}
+                onValueChange={toggleDarkMode}
+                trackColor={{ false: '#E5E5EA', true: '#34C759' }}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor="#E5E5EA"
+              />
+            </View>
 
             {/* Notifications with Switch */}
             <View style={{

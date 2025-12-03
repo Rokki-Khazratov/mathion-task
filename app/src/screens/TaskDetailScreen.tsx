@@ -14,6 +14,8 @@ import {
   Modal,
   FlatList,
   Dimensions,
+  Animated,
+  LayoutAnimation,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -27,7 +29,7 @@ type TaskDetailRouteProp = RouteProp<RootStackParamList, 'TaskDetail'>;
 // Status options in German
 const statusOptions: { key: TaskStatus; label: string; color: string; bg: string }[] = [
   { key: 'open', label: 'Offen', color: '#007AFF', bg: '#E5F1FF' }, // Primary
-  { key: 'in_progress', label: 'In Arbeit', color: '#FF3B30', bg: '#FFEBEA' }, // Red
+  { key: 'in_progress', label: 'In Arbeit', color: '#FF9500', bg: '#FFF3E0' }, // Orange
   { key: 'done', label: 'Erledigt', color: '#34C759', bg: '#E8F8ED' }, // Success
 ];
 
@@ -46,6 +48,7 @@ export function TaskDetailScreen() {
   const [deadline, setDeadline] = useState('');
   const [initialLoading, setInitialLoading] = useState(!!taskId);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [statusContainerWidth, setStatusContainerWidth] = useState(0);
   
   // Date picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -54,6 +57,20 @@ export function TaskDetailScreen() {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   
   const isEditMode = !!taskId;
+  
+  // Animation for status indicator
+  const statusSlideAnim = useRef(new Animated.Value(0)).current;
+  const statusIndex = statusOptions.findIndex(s => s.key === status);
+  
+  // Animate status indicator when status changes
+  useEffect(() => {
+    Animated.spring(statusSlideAnim, {
+      toValue: statusIndex,
+      useNativeDriver: true,
+      tension: 100,
+      friction: 10,
+    }).start();
+  }, [statusIndex, statusSlideAnim]);
   
   // Debug logging
   useEffect(() => {
@@ -225,36 +242,59 @@ export function TaskDetailScreen() {
   };
 
   // Handle delete
-  const handleDelete = () => {
+  const handleDelete = async () => {
     console.log('handleDelete called, taskId:', taskId);
     if (!taskId) {
       console.log('No taskId, returning');
       return;
     }
     
-    Alert.alert(
-      'Aufgabe löschen',
-      'Bist du sicher, dass du diese Aufgabe löschen möchtest?',
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        {
-          text: 'Löschen',
-          style: 'destructive',
-          onPress: async () => {
-            console.log('Delete confirmed, calling deleteTask');
-            const success = await deleteTask(taskId);
-            console.log('Delete result:', success);
-            if (success) {
-              // Fetch updated tasks before navigating back
-              await fetchTasks();
-              navigation.goBack();
-            } else {
-              Alert.alert('Fehler', 'Aufgabe konnte nicht gelöscht werden');
-            }
+    // Use native confirm for web compatibility
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Bist du sicher, dass du diese Aufgabe löschen möchtest?');
+      if (!confirmed) return;
+    } else {
+      // Use Alert.alert for native platforms
+      Alert.alert(
+        'Aufgabe löschen',
+        'Bist du sicher, dass du diese Aufgabe löschen möchtest?',
+        [
+          { text: 'Abbrechen', style: 'cancel' },
+          {
+            text: 'Löschen',
+            style: 'destructive',
+            onPress: async () => {
+              await performDelete();
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+      return;
+    }
+    
+    // Perform delete for web
+    await performDelete();
+  };
+  
+  // Perform the actual delete operation
+  const performDelete = async () => {
+    if (!taskId) return;
+    
+    console.log('Delete confirmed, calling deleteTask');
+    const success = await deleteTask(taskId);
+    console.log('Delete result:', success);
+    
+    if (success) {
+      // Fetch updated tasks and redirect immediately
+      await fetchTasks();
+      navigation.goBack();
+    } else {
+      if (Platform.OS === 'web') {
+        window.alert('Fehler: Aufgabe konnte nicht gelöscht werden');
+      } else {
+        Alert.alert('Fehler', 'Aufgabe konnte nicht gelöscht werden');
+      }
+    }
   };
 
   // Handle back
@@ -380,27 +420,68 @@ export function TaskDetailScreen() {
               />
             </View>
 
-            {/* Status Selector */}
+            {/* Status Selector with Animation */}
             <View style={{ marginBottom: 20 }}>
               <Text style={{ fontSize: 13, fontWeight: '600', color: '#86868B', marginBottom: 8, textTransform: 'uppercase' }}>
                 Status
               </Text>
-              <View style={{ 
-                flexDirection: 'row', 
-                backgroundColor: '#F2F2F7', 
-                borderRadius: 10, 
-                padding: 3,
-              }}>
+              <View 
+                style={{ 
+                  flexDirection: 'row', 
+                  backgroundColor: '#F2F2F7', 
+                  borderRadius: 10, 
+                  padding: 3,
+                  position: 'relative',
+                }}
+                onLayout={(e) => {
+                  setStatusContainerWidth(e.nativeEvent.layout.width);
+                }}
+              >
+                {/* Animated indicator with status color */}
+                {statusContainerWidth > 0 && (
+                  <Animated.View
+                    style={{
+                      position: 'absolute',
+                      top: 3,
+                      left: 3,
+                      right: 3,
+                      bottom: 3,
+                      width: (statusContainerWidth - 6) / statusOptions.length,
+                      backgroundColor: statusOptions[statusIndex]?.bg || '#FFFFFF',
+                      borderRadius: 8,
+                      borderWidth: 1.5,
+                      borderColor: statusOptions[statusIndex]?.color || '#FFFFFF',
+                      transform: [{
+                        translateX: statusSlideAnim.interpolate({
+                          inputRange: statusOptions.map((_, i) => i),
+                          outputRange: statusOptions.map((_, i) => {
+                            const tabW = (statusContainerWidth - 6) / statusOptions.length;
+                            return i * tabW;
+                          }),
+                        }),
+                      }],
+                      shadowColor: statusOptions[statusIndex]?.color || '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 4,
+                      elevation: 3,
+                    }}
+                  />
+                )}
+                
                 {statusOptions.map((option) => (
                   <TouchableOpacity
                     key={option.key}
-                    onPress={() => setStatus(option.key)}
+                    onPress={() => {
+                      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                      setStatus(option.key);
+                    }}
                     style={{
                       flex: 1,
-                      backgroundColor: status === option.key ? '#FFFFFF' : 'transparent',
                       borderRadius: 8,
                       paddingVertical: 10,
                       alignItems: 'center',
+                      zIndex: 1,
                     }}
                   >
                     <Text style={{ 
